@@ -1,0 +1,178 @@
+/**
+ * The snapshot store: the single place the server talks to data sources.
+ *
+ * Flow for every request:
+ *   1. If the cached snapshot is younger than REFRESH_INTERVAL_SECONDS → return it.
+ *   2. Otherwise pull every configured provider in parallel, merge them onto the
+ *      roster, compute tallies, cache, return.
+ *   3. "Update now" (force) skips the TTL, but is throttled server-wide by
+ *      MIN_FORCED_REFRESH_SECONDS so a hundred clicks = one upstream request.
+ *   4. Concurrent requests share one in-flight pull (no thundering herd).
+ *   5. If a provider fails, its last good data is kept and the error surfaced.
+ *
+ * State lives on globalThis so it survives Next.js dev-mode hot reloads. In a
+ * serverless deployment each warm instance has its own cache, which is fine:
+ * the worst case is one upstream call per instance per interval.
+ */
+import { tallyChamber } from "./analysis";
+import { ELECTION_DATE, getConfig, type AppConfig } from "./config";
+import { apProvider } from "./providers/ap";
+import { demoProvider, virtualNow } from "./providers/demo";
+import { feedProvider } from "./providers/feed";
+import type { Provider } from "./providers/types";
+import { buildRoster, SENATORS } from "./roster";
+import { STATES } from "@/data/states";
+import type { PartyCode, Race, Snapshot, SourceStatus } from "./types";
+
+const REGISTRY: Record<string, Provider> = {
+  ap: apProvider,
+  feed: feedProvider,
+  demo: demoProvider,
+};
+
+const PROVIDER_TIMEOUT_MS = 20_000;
+
+interface StoreState {
+  snapshot: Snapshot | null;
+  inflight: Promise<Snapshot> | null;
+  lastGood: Map<string, { races: Race[]; at: string }>;
+}
+
+const g = globalThis as typeof globalThis & { __electionStore?: StoreState };
+const store: StoreState = (g.__electionStore ??= { snapshot: null, inflight: null, lastGood: new Map() });
+
+/** Does this race carry real numbers (votes or a call)? */
+function hasData(r: Race): boolean {
+  return r.totalVotes > 0 || r.status === "called" || r.status === "runoff";
+}
+
+/**
+ * Overlay provider results onto the roster. `lists` is in priority order
+ * (first = most trusted). For each race the most trusted provider *with data*
+ * wins; roster metadata (held by, holder, poll close, notes) is preserved.
+ */
+export function mergeRaces(roster: Race[], lists: Race[][]): Race[] {
+  const merged = new Map(roster.map((r) => [r.id, r]));
+  const chosen = new Map<string, Race>();
+
+  for (const list of lists) {
+    for (const race of list) {
+      const prev = chosen.get(race.id);
+      if (!prev || (!hasData(prev) && hasData(race))) chosen.set(race.id, race);
+    }
+  }
+
+  for (const [id, race] of chosen) {
+    const base = merged.get(id);
+    if (base && race.candidates.length === 0) continue; // nothing live to show yet
+    merged.set(
+      id,
+      base
+        ? {
+            ...race,
+            heldBy: race.heldBy ?? base.heldBy,
+            holder: race.holder ?? base.holder,
+            pollClose: race.pollClose ?? base.pollClose,
+            note: race.note ?? base.note,
+            newLines: race.newLines ?? base.newLines,
+            special: race.special ?? base.special,
+            subtitle: race.subtitle ?? base.subtitle,
+            title: base.title,
+          }
+        : race,
+    );
+  }
+  return [...merged.values()];
+}
+
+function countBy<T>(items: T[], key: (t: T) => PartyCode): Partial<Record<PartyCode, number>> {
+  const out: Partial<Record<PartyCode, number>> = {};
+  for (const it of items) out[key(it)] = (out[key(it)] ?? 0) + 1;
+  return out;
+}
+
+export function computeTallies(races: Race[], rosterIds: Set<string>): Snapshot["tallies"] {
+  // Only roster races count toward chambers (excludes DC/territory delegates).
+  const core = races.filter((r) => rosterIds.has(r.id));
+  return {
+    senate: tallyChamber(core.filter((r) => r.office === "S"), {
+      total: 100,
+      majority: 51,
+      holdovers: countBy(SENATORS.filter((s) => !s.upIn2026), (s) => s.party),
+    }),
+    house: tallyChamber(core.filter((r) => r.office === "H"), { total: 435, majority: 218, holdovers: {} }),
+    governors: tallyChamber(core.filter((r) => r.office === "G"), {
+      total: 50,
+      majority: 26,
+      holdovers: countBy(
+        STATES.filter((s) => s.governor && !s.governor.upIn2026),
+        (s) => s.governor!.party,
+      ),
+    }),
+  };
+}
+
+async function pull(config: AppConfig): Promise<Snapshot> {
+  const now = new Date();
+  const roster = buildRoster();
+  const providers = config.providers.map((id) => REGISTRY[id]).filter(Boolean);
+
+  const results = await Promise.all(
+    providers.map(async (p): Promise<{ status: SourceStatus; races: Race[] }> => {
+      const checkedAt = new Date().toISOString();
+      try {
+        const races = await p.fetchRaces({ config, roster, now, signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS) });
+        store.lastGood.set(p.id, { races, at: checkedAt });
+        return {
+          races,
+          status: { id: p.id, name: p.name, url: p.url, ok: true, checkedAt, lastSuccessAt: checkedAt, raceCount: races.length, simulated: p.simulated },
+        };
+      } catch (err) {
+        const prev = store.lastGood.get(p.id);
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[results] provider ${p.id} failed: ${message}`);
+        return {
+          races: prev?.races ?? [],
+          status: {
+            id: p.id, name: p.name, url: p.url, ok: false, error: message, checkedAt,
+            lastSuccessAt: prev?.at ?? null, raceCount: prev?.races.length ?? 0, simulated: p.simulated,
+          },
+        };
+      }
+    }),
+  );
+
+  const races = mergeRaces(roster, results.map((r) => r.races));
+  const rosterIds = new Set(roster.map((r) => r.id));
+  const simulated = providers.some((p) => p.simulated);
+
+  return {
+    electionDate: ELECTION_DATE,
+    fetchedAt: now.toISOString(),
+    nextRefreshAt: new Date(now.getTime() + config.refreshIntervalSeconds * 1000).toISOString(),
+    refreshIntervalSeconds: config.refreshIntervalSeconds,
+    sources: results.map((r) => r.status),
+    simulated,
+    rosterOnly: providers.length === 0,
+    simulatedClock: simulated ? new Date(virtualNow(now, config.demoSpeed, config.demoStart)).toISOString() : undefined,
+    races,
+    tallies: computeTallies(races, rosterIds),
+  };
+}
+
+export async function getSnapshot({ force = false }: { force?: boolean } = {}): Promise<Snapshot> {
+  const config = getConfig();
+  const current = store.snapshot;
+  if (current) {
+    const age = Date.now() - Date.parse(current.fetchedAt);
+    const fresh = age < config.refreshIntervalSeconds * 1000;
+    const throttled = age < config.minForcedRefreshSeconds * 1000;
+    if ((!force && fresh) || (force && throttled)) return current;
+  }
+  if (store.inflight) return store.inflight;
+
+  store.inflight = pull(config)
+    .then((snap) => (store.snapshot = snap))
+    .finally(() => (store.inflight = null));
+  return store.inflight;
+}
