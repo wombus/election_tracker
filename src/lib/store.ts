@@ -14,11 +14,13 @@
  * serverless deployment each warm instance has its own cache, which is fine:
  * the worst case is one upstream call per instance per interval.
  */
-import { tallyChamber } from "./analysis";
+import { finalizeRace, tallyChamber } from "./analysis";
 import { ELECTION_DATE, getConfig, type AppConfig } from "./config";
 import { apProvider } from "./providers/ap";
+import { cnnProvider } from "./providers/cnn";
 import { demoProvider, virtualNow } from "./providers/demo";
 import { feedProvider } from "./providers/feed";
+import { nytProvider } from "./providers/nyt";
 import type { Provider } from "./providers/types";
 import { buildRoster, SENATORS } from "./roster";
 import { STATES } from "@/data/states";
@@ -27,10 +29,14 @@ import type { PartyCode, Race, Snapshot, SourceStatus } from "./types";
 const REGISTRY: Record<string, Provider> = {
   ap: apProvider,
   feed: feedProvider,
+  nyt: nytProvider,
+  cnn: cnnProvider,
   demo: demoProvider,
 };
 
 const PROVIDER_TIMEOUT_MS = 20_000;
+/** Max time a normal request waits for a refresh before serving the previous snapshot. */
+const STALE_WAIT_MS = 2_500;
 
 interface StoreState {
   snapshot: Snapshot | null;
@@ -46,23 +52,51 @@ function hasData(r: Race): boolean {
   return r.totalVotes > 0 || r.status === "called" || r.status === "runoff";
 }
 
+const lastName = (name: string) => name.trim().split(/\s+/).at(-1)?.toLowerCase() ?? "";
+
+/**
+ * If `race` has no call but another source called it, adopt that call: mark
+ * the matching candidate (same party + last name) as the winner and label who
+ * made the call. Votes still come from the preferred source.
+ */
+export function adoptCall(race: Race, other: Race): Race {
+  if (race.status === "called" || other.status !== "called") return race;
+  const theirWinner = other.candidates.find((c) => c.winner);
+  if (!theirWinner) return race;
+  const match = race.candidates.find(
+    (c) => c.party === theirWinner.party && lastName(c.name) === lastName(theirWinner.name),
+  );
+  if (!match) return race;
+  return finalizeRace({
+    ...race,
+    candidates: race.candidates.map((c) => (c === match ? { ...c, winner: true, runoff: undefined } : c)),
+    calledAt: other.calledAt,
+    calledBy: other.calledBy,
+  });
+}
+
 /**
  * Overlay provider results onto the roster. `lists` is in priority order
  * (first = most trusted). For each race the most trusted provider *with data*
- * wins; roster metadata (held by, holder, poll close, notes) is preserved.
+ * wins, a call from any provider is honored (first call wins), and roster
+ * metadata (held by, holder, poll close, notes) is preserved.
  */
 export function mergeRaces(roster: Race[], lists: Race[][]): Race[] {
   const merged = new Map(roster.map((r) => [r.id, r]));
   const chosen = new Map<string, Race>();
+  const all = new Map<string, Race[]>();
 
   for (const list of lists) {
     for (const race of list) {
+      all.set(race.id, [...(all.get(race.id) ?? []), race]);
       const prev = chosen.get(race.id);
       if (!prev || (!hasData(prev) && hasData(race))) chosen.set(race.id, race);
     }
   }
 
-  for (const [id, race] of chosen) {
+  for (const [id, picked] of chosen) {
+    let race = picked;
+    for (const other of all.get(id) ?? []) if (other !== picked) race = adoptCall(race, other);
     const base = merged.get(id);
     if (base && race.candidates.length === 0) continue; // nothing live to show yet
     merged.set(
@@ -142,7 +176,10 @@ async function pull(config: AppConfig): Promise<Snapshot> {
     }),
   );
 
-  const races = mergeRaces(roster, results.map((r) => r.races));
+  // Failover: a provider that failed this round only supplies its last good
+  // data, so it drops behind every provider that answered.
+  const ordered = [...results.filter((r) => r.status.ok), ...results.filter((r) => !r.status.ok)];
+  const races = mergeRaces(roster, ordered.map((r) => r.races));
   const rosterIds = new Set(roster.map((r) => r.id));
   const simulated = providers.some((p) => p.simulated);
 
@@ -160,6 +197,13 @@ async function pull(config: AppConfig): Promise<Snapshot> {
   };
 }
 
+/** Tests only: forget cached snapshots and last-good provider data. */
+export function resetStoreForTests(): void {
+  store.snapshot = null;
+  store.inflight = null;
+  store.lastGood.clear();
+}
+
 export async function getSnapshot({ force = false }: { force?: boolean } = {}): Promise<Snapshot> {
   const config = getConfig();
   const current = store.snapshot;
@@ -169,10 +213,17 @@ export async function getSnapshot({ force = false }: { force?: boolean } = {}): 
     const throttled = age < config.minForcedRefreshSeconds * 1000;
     if ((!force && fresh) || (force && throttled)) return current;
   }
-  if (store.inflight) return store.inflight;
-
-  store.inflight = pull(config)
-    .then((snap) => (store.snapshot = snap))
-    .finally(() => (store.inflight = null));
+  if (!store.inflight) {
+    store.inflight = pull(config)
+      .then((snap) => (store.snapshot = snap))
+      .finally(() => (store.inflight = null));
+  }
+  // Stale-while-revalidate: if we already have results, don't make a page
+  // load wait more than a moment on slow sources. The pull keeps running and
+  // the next poll picks it up. ("Update now" always waits for fresh data.)
+  if (current && !force) {
+    const timeout = new Promise<Snapshot>((resolve) => setTimeout(() => resolve(current), STALE_WAIT_MS));
+    return Promise.race([store.inflight, timeout]);
+  }
   return store.inflight;
 }

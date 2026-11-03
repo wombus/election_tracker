@@ -61,6 +61,8 @@ export interface Race {
   winnerParty: PartyCode | null;
   /** ISO timestamp the race was called, if the source provides it. */
   calledAt: string | null;
+  /** Whose call this is, e.g. "AP" or "Decision Desk HQ". */
+  calledBy?: string;
   /** ISO timestamp the source last changed this race's numbers. */
   lastUpdated: string | null;
   /** Which provider supplied the live numbers ("ap", "feed", "demo", "roster"). */

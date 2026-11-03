@@ -1,28 +1,33 @@
 "use client";
 
+import { timeET } from "@/lib/format";
 import { useResults } from "./ResultsProvider";
 
 export function Footer() {
   const { snapshot } = useResults();
-  const usingAp = snapshot.sources.some((s) => s.id === "ap");
   return (
     <footer className="site-foot">
       <div className="site-foot-inner">
         <div>
           <h2>Sources</h2>
           <ul>
-            {usingAp ? (
-              <li>
-                Vote counts and race calls: <a href="https://www.ap.org/elections/" target="_blank" rel="noreferrer">The Associated Press</a>
+            {snapshot.sources.map((s) => (
+              <li key={s.id} className="src">
+                <span className={`src-dot ${s.ok ? "src-dot--ok" : "src-dot--bad"}`} aria-hidden="true" />
+                {s.simulated ? (
+                  "Simulated results: built-in simulator (not real data)"
+                ) : (
+                  <>
+                    Results: {s.url ? <a href={s.url} target="_blank" rel="noreferrer">{s.name}</a> : s.name}
+                  </>
+                )}
+                <span className="src-meta">
+                  {s.ok
+                    ? ` · ${s.raceCount} races · checked ${timeET(s.checkedAt)}`
+                    : ` · not responding${s.lastSuccessAt ? `, last good ${timeET(s.lastSuccessAt)}` : ""}`}
+                </span>
               </li>
-            ) : null}
-            {snapshot.sources
-              .filter((s) => s.id !== "ap")
-              .map((s) => (
-                <li key={s.id}>
-                  {s.simulated ? "Simulated results: built-in simulator (not real data)" : `Results: ${s.name}`}
-                </li>
-              ))}
+            ))}
             <li>
               Seat holders:{" "}
               <a href="https://github.com/unitedstates/congress-legislators" target="_blank" rel="noreferrer">

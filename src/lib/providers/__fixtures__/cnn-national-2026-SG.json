@@ -1,0 +1,23 @@
+[
+  {
+    "candidates": [
+      { "candidatePartyCode": "D", "firstName": "Jon", "fullName": "Jon Ossoff", "isIncumbent": true, "lastName": "Ossoff", "majorParty": "DEM", "partyName": "Democratic", "voteNum": 1250000, "votePercentNum": 51, "votePercentStr": "51.0", "winner": false, "candidateId": 101 },
+      { "candidatePartyCode": "R", "firstName": "Pat", "fullName": "Pat Example", "isIncumbent": false, "lastName": "Example", "majorParty": "REP", "partyName": "Republican", "voteNum": 1200000, "votePercentNum": 49, "votePercentStr": "49.0", "winner": false, "candidateId": 102 }
+    ],
+    "contestType": "general", "ecKey": "2026-SG-GA", "editorialStatus": "counting", "electionTitle": "2026 Senate General", "electionType": "G",
+    "extractedAt": "2026-11-04T01:30:04.374157", "percentReporting": 62,
+    "raceEmbargo": { "assignedPollsClose": 1793750400000, "callsRelease": 1793750400000, "callsReleased": true, "pollsClosed": true, "votesReleased": true },
+    "raceTitle": "Georgia Senate", "raceType": "S", "stateAbbreviation": "GA", "stateFipsCode": "13", "stateName": "Georgia",
+    "status": "U", "totalVote": 2450000, "version": 12
+  },
+  {
+    "candidates": [
+      { "candidateId": 201, "firstName": "Sam", "fullName": "Sam Sample", "isIncumbent": false, "lastName": "Sample", "majorParty": "REP", "partyName": "Republican", "runoffCandidate": false, "voteNum": 3100000, "votePercentNum": 55, "winner": true },
+      { "candidateId": 202, "firstName": "Dana", "fullName": "Dana Demo", "isIncumbent": false, "lastName": "Demo", "majorParty": "DEM", "partyName": "Democratic", "runoffCandidate": false, "voteNum": 2500000, "votePercentNum": 44, "winner": false },
+      { "candidateId": 203, "firstName": "Lee", "fullName": "Lee Libertarian", "isIncumbent": false, "lastName": "Libertarian", "majorParty": "LIB", "partyName": "Libertarian", "runoffCandidate": false, "voteNum": 60000, "votePercentNum": 1, "winner": false }
+    ],
+    "ecKey": "2026-SG-TX", "editorialStatus": "called", "extractedAt": "2026-11-04T03:01:00.000000", "isSwitch": false, "percentReporting": 88,
+    "raceEmbargo": { "assignedPollsClose": 1793761200000 },
+    "raceType": "S", "stateAbbreviation": "TX", "status": "W", "totalVote": 5660000, "voteTimestamp": "2026-11-04T02:58:11.000Z"
+  }
+]

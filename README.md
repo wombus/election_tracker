@@ -20,11 +20,14 @@ A live results tracker for the **November 3, 2026** U.S. midterms. Built with Ne
 
 ```bash
 npm install
-cp .env.example .env.local     # then add a data source (see below)
-npm run dev                    # http://localhost:3000
+npm run check-sources          # confirm the free live feeds answer from your network
+npm run dev                    # http://localhost:3000. Live data with zero configuration.
 ```
 
-Want to see it working without a data source? Run the **simulator**. It replays a fictional
+No API key is needed. By default the tracker reads **AP results via The New York Times** and
+**Decision Desk HQ results via CNN** (see *Where the data comes from*).
+
+Want to rehearse the UI before polls close? Run the **simulator**. It replays a fictional
 election night, and every page is labelled **SIMULATED** while it's on:
 
 ```bash
@@ -38,37 +41,53 @@ Other scripts: `npm test` (unit tests), `npm run typecheck`, `npm run build && n
 
 ## Where the data comes from
 
-There is **no free, official, nationwide, real-time election results API** in the U.S. Results are
-counted by ~10,000 local jurisdictions and published by 50 state election offices in 50 different
-formats. News organizations solve this by paying the **Associated Press**, which staffs every county
-on election night and makes the race calls. This app is built around that reality.
+There is no official, free, nationwide real-time results API in the U.S. Results are counted by
+thousands of local offices and published by 50 states in 50 formats. Newsrooms pay the
+**Associated Press** or **Decision Desk HQ (DDHQ)** to collect and call them. Two major outlets
+publish the resulting data as **public JSON files** for their own results pages, and that's what
+the tracker reads by default:
 
-| Source | What it gives us | Cost / access | How it's used |
-|---|---|---|---|
-| **[AP Elections API](https://developer.ap.org/ap-elections-api/)** | Vote counts and **race calls** for every race on the ballot, nationwide | Requires an API key (paid; AP offers developer/trial access) | `ap` provider. Set `AP_API_KEY`. **Recommended.** |
-| **Your own JSON feed** | Whatever you point it at: a state election-night scraper, a collector you run, a spreadsheet export | Free | `feed` provider. Set `RESULTS_FEED_URL` (schema below). |
-| **[unitedstates/congress-legislators](https://github.com/unitedstates/congress-legislators)** | Who holds every Senate and House seat today (to tell a **hold** from a **flip**) | Free, public domain | Build step → `src/data/congress.json` |
-| **[us-atlas](https://github.com/topojson/us-atlas)** (U.S. Census Bureau boundaries) | State shapes for the map | Free | Build step → `src/data/us-map.json` |
-| `src/data/states.ts` (hand-curated) | Poll-closing times, sitting governors | n/a | Static |
+| Provider | Source | Coverage | Key? | Role |
+|---|---|---|---|---|
+| `nyt` | AP results via **The New York Times**: `static01.nyt.com/elections-assets/pages/data/2026-11-03/results-{senate,governor,house}.json`, plus one file per state (`results-new-hampshire.json` …) | Every Senate, House and governor race; per-state files add **every statewide contest and ballot measure**. AP race calls, expected-vote %, incumbency, runoffs | None | **Primary** |
+| `cnn` | DDHQ results via **CNN**: `politics.api.cnn.io/results/national-races/2026-{SG,GG,HG}.json` | Every Senate, House and governor race, with DDHQ race calls | None | **Failover + second set of calls** |
+| `ap` | [AP Elections API](https://developer.ap.org/ap-elections-api/) | Everything on the ballot, licensed | Paid key | Optional, highest priority when set |
+| `feed` | Any JSON URL in the format below | Whatever you point it at | — | Optional |
 
-Free sources I looked at but **did not build in**, because their formats couldn't be verified from the
-build environment:
+**How the two free sources work together**
 
-- **[civicAPI](https://civicapi.org/)** says it offers free live results with no key. Worth evaluating
-  for a second provider.
-- **News organizations' results JSON** (e.g. the AP-sourced files behind NYT's results pages) is
-  public but undocumented, subject to their terms, and liable to change format without notice.
-- **State election-night reporting sites** (many states use Clarity/Scytl ENR feeds) are official
-  and free but differ per state. Each one is a small provider to write. They're a good fit for the
-  `feed` provider or a dedicated adapter.
+- **Votes:** NYT/AP is preferred; CNN fills in any race NYT doesn't have.
+- **Failover:** if NYT stops answering, its last good data drops behind CNN's fresh data
+  automatically, and a banner says so. The reverse works too.
+- **Calls:** a race counts as called as soon as *either* AP or DDHQ calls it. The card says who
+  made the call ("Called by AP" or "Called by Decision Desk HQ").
 
-### With no source configured
+**Is this reliable?** These are high-traffic CDN files that these outlets serve to millions of
+readers on election night (cached seconds at a time, with ETags), so availability is good. The
+tracker also sends conditional requests, so unchanged files cost a 304 with no body. They are
+**unofficial and undocumented**, though. The format was verified against several independent
+open-source trackers and real captured responses, but an outlet can change or restrict it without
+notice. That's why there are two, and why `npm run check-sources` exists: run it on election night
+to confirm both answer in the expected shape.
 
-The app still works. It shows all **506 federal and gubernatorial races** (35 Senate, including the
-Ohio and Florida specials, 36 governors and 435 House seats) with the party currently holding each
-seat, marked "awaiting results", and a banner explaining how to connect a source.
+**Terms of use.** These files exist for the publishers' own pages. Reading them for a personal
+dashboard is common practice. Publishing a public or commercial product on top of them needs the
+publisher's permission, or a licensed feed (AP or DDHQ).
 
----
+| Supporting data | Used for |
+|---|---|
+| [unitedstates/congress-legislators](https://github.com/unitedstates/congress-legislators) (public domain) | Who holds every Senate and House seat (hold vs. flip). Build step → `src/data/congress.json` |
+| [us-atlas](https://github.com/topojson/us-atlas) (U.S. Census Bureau) | State shapes. Build step → `src/data/us-map.json` |
+| `src/data/states.ts` (hand-curated) | Poll-closing times, sitting governors |
+
+Other keyless outlets that open-source projects have documented (NBC, ABC, Fox, CBS, civicAPI)
+could be added as more failovers. See *Adding a new source*.
+
+### If every source is down
+
+The app still works: it shows all **506 federal and gubernatorial races** with the party holding
+each seat, marks the header **Offline**, and names the failing sources. Set `DATA_PROVIDERS=none`
+to run roster-only on purpose.
 
 ## How it works, step by step
 
@@ -102,9 +121,17 @@ Each provider fetches one source and translates it into the app's **normalized `
 about `Race`, never about AP's JSON or anyone else's, so sources can be swapped or stacked without
 touching a component.
 
+- `nyt.ts`: reads NYT's national files and, in parallel, the 51 per-state files (each one fails
+  independently and keeps its last good copy). Skips county and city contests and the national
+  aggregate row. Prefers the general election when a seat appears twice.
+- `cnn.ts`: reads CNN's national files and drops contests decided earlier in the year that are
+  still in them (e.g. a January special runoff for the same seat), keeping each seat's latest
+  contest.
 - `ap.ts`: AP v3. Maps `officeID` S/H/G to Senate/House/Governor and everything else (statewide
   offices, ballot measures, legislature) to "other". Reads `winner: "X"` (called), `"R"` (runoff)
   and `"N"` (call retracted). Prefers `eevp` (expected-vote %) over precincts reporting.
+- `http.ts`: shared conditional-GET fetch (ETag / Last-Modified) and party-label normalization
+  (`DEM`, `Democrat`, `DFL` → D; `GOP`, `REP` → R; anything else → NPA/other).
 - `feed.ts`: validates and normalizes a generic JSON document (schema below).
 - `demo.ts`: the simulator (development only).
 
@@ -115,10 +142,13 @@ touching a component.
 1. If the cached snapshot is younger than `REFRESH_INTERVAL_SECONDS` (300), return it.
 2. Otherwise call all providers **in parallel** (20 s timeout each) and **merge** them onto the
    roster. Providers are listed in priority order; for each race the most trusted provider *that
-   has data* wins.
+   has data* wins. A provider that failed this round is moved to the back (**failover**), and a
+   call from any provider is honored (**call union**).
 3. Compute chamber tallies (won / leading / holdover / awaiting).
 4. Concurrent requests share **one in-flight pull**, so a traffic spike causes one upstream call.
 5. If a provider fails, its **last good data is kept** and the failure is shown in a banner.
+   When the cache is stale, a page load waits at most ~2.5 s for the refresh before serving the
+   previous snapshot (stale-while-revalidate), so a slow source never freezes the page.
 6. **Update now** forces a pull, but forced pulls are throttled server-wide
    (`MIN_FORCED_REFRESH_SECONDS`, default 20 s). A hundred people clicking at once is still one
    request to AP, which protects your API quota.
@@ -161,7 +191,8 @@ All settings are environment variables (see `.env.example`):
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `DATA_PROVIDERS` | auto | Comma list in priority order: `ap`, `feed`, `demo`. Auto = `ap` if `AP_API_KEY` set, plus `feed` if `RESULTS_FEED_URL` set. |
+| `DATA_PROVIDERS` | auto | Comma list in priority order: `ap`, `feed`, `nyt`, `cnn`, `demo`, or `none`. Auto = `ap` (if key) → `feed` (if URL) → `nyt` → `cnn`. |
+| `NYT_STATE_FILES` | `true` | Also read NYT's per-state files (other statewide races, ballot measures). |
 | `AP_API_KEY` | | AP Elections API key. |
 | `AP_OFFICE_IDS` | all | e.g. `S,H,G` to fetch only federal and governor races (smaller payload). |
 | `AP_TEST_MODE` | `false` | `true` requests AP's test data (`resultsType=t`). Handy for rehearsing before polls close. |
@@ -207,9 +238,10 @@ The roster gives you stable race IDs: `S-GA`, `G-GA`, `H-GA-14`, `H-WY-0`.
 
 ## Deploying
 
-Any Node host works (`npm run build && npm start`). On **Vercel**: import the repo, add `AP_API_KEY`
-(and/or `RESULTS_FEED_URL`) under Environment Variables, deploy. Each serverless instance keeps its
-own 5-minute cache, so worst case is one upstream call per warm instance per interval.
+Any Node host works (`npm run build && npm start`). On **Vercel**: import the repo and deploy.
+No environment variables are needed for the free sources. Each serverless instance keeps its own
+5-minute cache, so the worst case is one round of upstream requests per warm instance per interval.
+After deploying, the footer's **Sources** list shows each feed's live status and race count.
 
 ## Caveats
 
@@ -224,10 +256,10 @@ own 5-minute cache, so worst case is one upstream call per warm instance per int
 ## Project layout
 
 ```
-scripts/            build-roster.mjs, build-map.mjs   (generate src/data/*.json)
+scripts/            build-roster.mjs, build-map.mjs (generate src/data/*.json), check-sources.mjs
 src/data/           congress.json, us-map.json, states.ts
 src/lib/            types, config, roster, analysis, map-fills, store, format
-src/lib/providers/  ap, feed, demo
+src/lib/providers/  nyt, cnn, ap, feed, demo, http   (+ __fixtures__ for tests)
 src/app/            layout, page (map), flips/, called/, api/results/
 src/components/     MapView, USMap, StatePanel, RaceCard, VoteBar, BalanceOfPower,
                     UpdateStamp, ResultsProvider, Header, FlipWatch, CalledRaces, ...

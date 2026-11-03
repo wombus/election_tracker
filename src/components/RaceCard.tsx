@@ -20,7 +20,7 @@ export function StatusChip({ race, compact = false }: { race: Race; compact?: bo
   if (race.status === "called") {
     const p = race.winnerParty ?? "I";
     return (
-      <span className="chip chip--called">
+      <span className="chip chip--called" title={`Called${race.calledBy ? ` by ${race.calledBy}` : ""}${race.calledAt ? ` at ${timeET(race.calledAt)}` : ""}`}>
         <span className={`dot dot--${race.isBallotMeasure ? "I" : p}`} aria-hidden="true" />
         <CheckIcon size={12} />
         {race.isBallotMeasure ? `Called: ${race.candidates.find((c) => c.winner)?.name ?? ""}` : `Called · ${PARTY_SHORT[p]}`}
@@ -109,7 +109,12 @@ export function RaceCard({
 
       <div className="race-meta">
         <HeldBy race={race} />
-        {race.status !== "awaiting" && race.reportingPct != null && !compact ? (
+        {race.status === "called" && !compact ? (
+          <span className="race-meta-r" title={race.calledAt ? `Called ${timeET(race.calledAt)}` : undefined}>
+            Called by {race.calledBy ?? "source"}
+            {race.reportingPct != null ? ` · ${pct(race.reportingPct, 0)} in` : ""}
+          </span>
+        ) : race.status !== "awaiting" && race.reportingPct != null && !compact ? (
           <span className="race-meta-r">{pct(race.reportingPct, 0)} of expected vote</span>
         ) : null}
       </div>

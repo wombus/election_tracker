@@ -1297,6 +1297,17 @@ code {
 .site-foot ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .site-foot a { color: var(--text-2); text-underline-offset: 3px; }
 .site-foot b { color: var(--text-2); }
+.src-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+.src-dot--ok { background: var(--live); }
+.src-dot--bad { background: var(--r); }
+.src-meta { color: var(--text-3); }
 
 @media (forced-colors: active) {
   .seg, .sw, .dot, .swatch { forced-color-adjust: none; }

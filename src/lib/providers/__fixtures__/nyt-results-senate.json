@@ -1,0 +1,35 @@
+{
+  "races": [
+    {
+      "nyt_id": "GA-G-S-2026-11-03", "office": "U.S. Senate", "office_id": "S", "race_type_id": "G", "seat": null, "seat_number": null,
+      "updated_at": "2026-11-04T01:29:00Z", "race_call_status": "too_early",
+      "candidate_metadata": {
+        "ossoff-j": { "nyt_id": "ossoff-j", "first_name": "Jon", "last_name": "Ossoff", "incumbent": true, "party": { "nyt_id": "DEM", "name": "Democrat" } },
+        "example-p": { "nyt_id": "example-p", "first_name": "Pat", "last_name": "Example", "incumbent": false, "party": { "nyt_id": "GOP", "name": "Republican" } }
+      },
+      "outcome": { "won": [], "advanced_to_runoff": [], "called_by": null, "winner_accepted_at": null },
+      "top_reporting_unit": {
+        "state_postal": "GA", "level": "state", "eevp": 60, "total_votes": 2400000, "total_expected_vote": 4000000,
+        "provider_updated_at": "2026-11-04T01:28:30Z",
+        "candidates": [ { "nyt_id": "ossoff-j", "votes": { "total": 1230000 }, "leader": true }, { "nyt_id": "example-p", "votes": { "total": 1170000 }, "leader": false } ]
+      }
+    },
+    {
+      "nyt_id": "OH-S-S-2026-11-03", "office": "U.S. Senate", "office_id": "S", "race_type_id": "S", "seat_number": null,
+      "candidate_metadata": {
+        "a": { "nyt_id": "a", "first_name": "Ann", "last_name": "Alpha", "incumbent": true, "party": { "nyt_id": "REP" } },
+        "b": { "nyt_id": "b", "first_name": "Bo", "last_name": "Beta", "incumbent": false, "party": { "nyt_id": "democrat" } }
+      },
+      "outcome": { "won": ["a"], "winner_accepted_at": [null, "2026-11-04T01:05:00Z"] },
+      "top_reporting_unit": {
+        "state_postal": "OH", "eevp": 80, "total_votes": 4000000, "provider_updated_at": "2026-11-04T01:20:00Z",
+        "candidates": [ { "nyt_id": "a", "votes": { "total": 2300000 } }, { "nyt_id": "b", "votes": { "total": 1700000 } } ]
+      }
+    },
+    {
+      "nyt_id": "US-G-S-2026-11-03", "office": "U.S. Senate", "office_id": "S", "race_type_id": "G",
+      "candidate_metadata": {}, "outcome": { "won": [] },
+      "top_reporting_unit": { "state_postal": "US", "candidates": [] }
+    }
+  ]
+}

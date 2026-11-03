@@ -25,6 +25,8 @@ export interface AppConfig {
   apOfficeIds?: string;
   apTestMode: boolean;
   feedUrl?: string;
+  /** Also pull NYT's per-state files (other statewide races, ballot measures). */
+  nytStateFiles: boolean;
   demoSpeed: number;
   /** Simulator start time on election night, ET "HH:MM" (24h; 24:00+ = after midnight). */
   demoStart: string;
@@ -36,11 +38,14 @@ export function getConfig(): AppConfig {
 
   let providers = listEnv("DATA_PROVIDERS");
   if (providers.length === 0) {
-    // Auto-detect from whatever credentials are present.
+    // Default: any paid/custom source you've configured first, then the two
+    // free sources (NYT/AP primary, CNN/Decision Desk failover).
     if (apApiKey) providers.push("ap");
     if (feedUrl) providers.push("feed");
+    providers.push("nyt", "cnn");
   }
-  providers = [...new Set(providers)];
+  // DATA_PROVIDERS=none → roster only, no live sources.
+  providers = [...new Set(providers)].filter((p) => p !== "none");
 
   return {
     providers,
@@ -50,6 +55,7 @@ export function getConfig(): AppConfig {
     apOfficeIds: process.env.AP_OFFICE_IDS?.trim() || undefined,
     apTestMode: process.env.AP_TEST_MODE === "true",
     feedUrl,
+    nytStateFiles: process.env.NYT_STATE_FILES !== "false",
     demoSpeed: intEnv("DEMO_SPEED", 12, 1),
     demoStart: /^\d{1,2}:\d{2}$/.test(process.env.DEMO_START ?? "") ? process.env.DEMO_START! : "18:45",
   };

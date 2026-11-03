@@ -22,10 +22,10 @@ export function SourceBanner() {
 
       {snapshot.rosterOnly ? (
         <div className="banner banner--info" role="status">
-          <strong>No live results source is connected yet.</strong>
+          <strong>Live sources are turned off.</strong>
           <span>
-            Every race on the ballot is listed with the party holding each seat. Set <code>AP_API_KEY</code> or{" "}
-            <code>RESULTS_FEED_URL</code> to stream vote counts and race calls (see README).
+            <code>DATA_PROVIDERS</code> is set to <code>none</code>, so every race is listed with the party holding each
+            seat but no votes. Remove it to use the free NYT/AP and CNN/Decision Desk feeds (see README).
           </span>
         </div>
       ) : null}

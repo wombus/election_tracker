@@ -141,6 +141,7 @@ export function normalizeApRace(race: ApRace, roster: Map<string, Race>): Race |
     status: "awaiting",
     winnerParty: null,
     calledAt,
+    calledBy: candidates.some((c) => c.winner) ? "AP" : undefined,
     lastUpdated: ru.lastUpdated ?? race.lastUpdated ?? null,
     source: "ap",
     pollClose: base?.pollClose,

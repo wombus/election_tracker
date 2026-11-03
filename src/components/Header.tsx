@@ -11,13 +11,14 @@ import { useNow, useResults } from "./ResultsProvider";
 function RefreshStatus() {
   const { snapshot, refreshing, refresh } = useResults();
   const now = useNow(1000);
+  const offline = snapshot.rosterOnly || (snapshot.sources.length > 0 && snapshot.sources.every((x) => !x.ok));
   const remaining = now === null ? null : Date.parse(snapshot.nextRefreshAt) - now;
 
   return (
     <div className="refresh" aria-live="off">
       <div className="refresh-text">
         <span className="refresh-line">
-          <span className={`live-dot ${snapshot.rosterOnly ? "live-dot--off" : ""}`} aria-hidden="true" />
+          <span className={`live-dot ${offline ? "live-dot--off" : ""}`} aria-hidden="true" />
           Updated <time dateTime={snapshot.fetchedAt}>{timeET(snapshot.fetchedAt, true)}</time>
         </span>
         <span className="refresh-sub" suppressHydrationWarning>
@@ -63,6 +64,7 @@ export function Header() {
     return f === "flipped" || f === "trending";
   }).length;
   const called = snapshot.races.filter((r) => r.status === "called").length;
+  const offline = snapshot.rosterOnly || (snapshot.sources.length > 0 && snapshot.sources.every((s) => !s.ok));
 
   const links = [
     { href: "/", label: "Map", count: null },
@@ -78,8 +80,8 @@ export function Header() {
           <span className="brand-text">
             Midterms <b>2026</b>
           </span>
-          <span className={`pill ${snapshot.simulated ? "pill--sim" : snapshot.rosterOnly ? "pill--off" : "pill--live"}`}>
-            {snapshot.simulated ? "Simulated" : snapshot.rosterOnly ? "No feed" : "Live"}
+          <span className={`pill ${snapshot.simulated ? "pill--sim" : offline ? "pill--off" : "pill--live"}`}>
+            {snapshot.simulated ? "Simulated" : snapshot.rosterOnly ? "No feed" : offline ? "Offline" : "Live"}
           </span>
         </Link>
         <nav className="nav" aria-label="Views">

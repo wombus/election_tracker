@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "data:roster": "node scripts/build-roster.mjs",
     "data:map": "node scripts/build-map.mjs",
-    "data": "npm run data:roster && npm run data:map"
+    "data": "npm run data:roster && npm run data:map",
+    "check-sources": "node scripts/check-sources.mjs"
   },
   "engines": {
     "node": ">=20.9.0"
