@@ -1,0 +1,44 @@
+{
+  "name": "election-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Live 2026 U.S. midterm election tracker: clickable map, flip watch, and called-race dashboards.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "data:roster": "node scripts/build-roster.mjs",
+    "data:map": "node scripts/build-map.mjs",
+    "data": "npm run data:roster && npm run data:map",
+    "check-sources": "node scripts/check-sources.mjs"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/d3-geo": "3.1.1",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/topojson-client": "3.1.5",
+    "d3-geo": "3.1.2",
+    "topojson-client": "3.1.0",
+    "typescript": "5.9.3",
+    "us-atlas": "3.0.1",
+    "vite": "7.3.7",
+    "vitest": "4.1.12",
+    "yaml": "2.9.1"
+  },
+  "overrides": {
+    "vite": "7.3.7"
+  }
+}

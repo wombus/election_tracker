@@ -1,0 +1,25 @@
+[
+  {
+    "candidates": [
+      { "candidateId": 301, "fullName": "Early Winner", "lastName": "Winner", "majorParty": "DEM", "partyName": "Democratic", "voteNum": 30000, "winner": true, "isIncumbent": false }
+    ],
+    "ecKey": "2026-HQ-TX-18", "raceType": "H", "stateAbbreviation": "TX", "status": "W", "percentReporting": 100, "totalVote": 30000,
+    "raceEmbargo": { "assignedPollsClose": 1769904000000 }, "voteTimestamp": "2026-02-01T04:00:00.000Z"
+  },
+  {
+    "candidates": [
+      { "candidateId": 302, "fullName": "Nov Candidate", "lastName": "Candidate", "majorParty": "DEM", "partyName": "Democratic", "voteNum": 81000, "winner": false, "isIncumbent": true },
+      { "candidateId": 303, "fullName": "Other Hopeful", "lastName": "Hopeful", "majorParty": "REP", "partyName": "Republican", "voteNum": 52000, "winner": false, "isIncumbent": false }
+    ],
+    "ecKey": "2026-HG-TX-18", "raceType": "H", "stateAbbreviation": "TX", "status": "U", "percentReporting": 45, "totalVote": 133000,
+    "raceEmbargo": { "assignedPollsClose": 1793757600000 }, "extractedAt": "2026-11-04T02:10:00.000000"
+  },
+  {
+    "candidates": [
+      { "candidateId": 401, "fullName": "Wy Rep", "lastName": "Rep", "majorParty": "REP", "partyName": "Republican", "voteNum": 150000, "winner": true, "isIncumbent": true },
+      { "candidateId": 402, "fullName": "Wy Dem", "lastName": "Dem", "majorParty": "DEM", "partyName": "Democratic", "voteNum": 60000, "winner": false, "isIncumbent": false }
+    ],
+    "ecKey": "2026-HG-WY-1", "raceType": "H", "stateAbbreviation": "WY", "status": "W", "percentReporting": 95, "totalVote": 210000,
+    "raceEmbargo": { "assignedPollsClose": 1793757600000 }, "voteTimestamp": "2026-11-04T02:30:00.000Z"
+  }
+]
