@@ -12,8 +12,10 @@ import type { Candidate, ChamberTally, PartyCode, PartyTally, Race } from "./typ
  * any winner/runoff flags their source publishes.
  */
 export function finalizeRace(race: Race): Race {
-  const totalVotes = race.candidates.reduce((sum, c) => sum + c.votes, 0);
-  const candidates: Candidate[] = race.candidates
+  // Sources list placeholder rows like "Total Write-ins" with 0 votes; hide those.
+  const real = race.candidates.filter((c) => c.votes > 0 || c.winner || !/write-?ins?\b/i.test(c.name));
+  const totalVotes = real.reduce((sum, c) => sum + c.votes, 0);
+  const candidates: Candidate[] = real
     .map((c) => ({ ...c, pct: totalVotes > 0 ? (c.votes / totalVotes) * 100 : 0 }))
     .sort((a, b) => b.votes - a.votes || a.name.localeCompare(b.name));
 

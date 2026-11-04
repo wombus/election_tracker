@@ -941,6 +941,18 @@ code {
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 10px;
 }
+.group {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.group summary {
+  cursor: pointer;
+  padding: 4px 0 8px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text-2);
+}
+.group summary:hover { color: var(--text); }
 .grid-compact--wide { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
 .link-btn {
   padding: 0;

@@ -1,27 +1,160 @@
 {
-  "races": [
-    {
-      "nyt_id": "FL-G-I-2026-11-03-amendment-4", "office": "Ballot Measure", "office_id": "I", "race_type_id": "G", "seat": "Amendment 4", "coverage": "state",
-      "candidate_metadata": {
-        "yes": { "nyt_id": "yes", "first_name": null, "last_name": "Yes" },
-        "no": { "nyt_id": "no", "first_name": null, "last_name": "No" }
-      },
-      "outcome": { "won": [] },
-      "top_reporting_unit": { "state_postal": "FL", "eevp": 70, "total_votes": 6000000, "candidates": [ { "nyt_id": "yes", "votes": { "total": 3500000 } }, { "nyt_id": "no", "votes": { "total": 2500000 } } ] }
+ "races": [
+  {
+   "nyt_id": "FL-G-I-2026-11-03-amendment-4",
+   "office": "Amendment",
+   "office_id": "I",
+   "race_type_id": "G",
+   "seat": "4 - Sample amendment",
+   "coverage": "state",
+   "candidate_metadata": {
+    "yes": {
+     "nyt_id": "yes",
+     "first_name": null,
+     "last_name": "Yes",
+     "party": {
+      "nyt_id": "YES"
+     }
     },
-    {
-      "nyt_id": "FL-G-A-2026-11-03", "office": "Attorney General", "office_id": "A", "race_type_id": "G", "seat": "Attorney General", "coverage": "state",
-      "candidate_metadata": {
-        "ag1": { "nyt_id": "ag1", "first_name": "Al", "last_name": "Gee", "party": { "nyt_id": "GOP" } },
-        "ag2": { "nyt_id": "ag2", "first_name": "Di", "last_name": "Dee", "party": { "nyt_id": "DEM" } }
-      },
-      "outcome": { "won": [] },
-      "top_reporting_unit": { "state_postal": "FL", "eevp": 70, "total_votes": 5800000, "candidates": [ { "nyt_id": "ag1", "votes": { "total": 3100000 } }, { "nyt_id": "ag2", "votes": { "total": 2700000 } } ] }
-    },
-    {
-      "nyt_id": "FL-G-LM-2026-11-03-miami", "office": "Local Measure", "office_id": "LM", "race_type_id": "G", "seat": "Miami Question 1", "coverage": "county",
-      "candidate_metadata": {}, "outcome": { "won": [] },
-      "top_reporting_unit": { "state_postal": "FL", "candidates": [] }
+    "no": {
+     "nyt_id": "no",
+     "first_name": null,
+     "last_name": "No",
+     "party": {
+      "nyt_id": "NO"
+     }
     }
-  ]
+   },
+   "outcome": {
+    "won": []
+   },
+   "top_reporting_unit": {
+    "state_postal": "FL",
+    "eevp": 70,
+    "total_votes": 6000000,
+    "candidates": [
+     {
+      "nyt_id": "yes",
+      "votes": {
+       "total": 3500000
+      }
+     },
+     {
+      "nyt_id": "no",
+      "votes": {
+       "total": 2500000
+      }
+     }
+    ]
+   },
+   "title": {
+    "default": "Amendment 4 \u2013 Sample Amendment",
+    "embed": null
+   }
+  },
+  {
+   "nyt_id": "FL-G-A-2026-11-03",
+   "office": "Attorney General",
+   "office_id": "A",
+   "race_type_id": "G",
+   "seat": "Attorney General",
+   "coverage": "state",
+   "candidate_metadata": {
+    "ag1": {
+     "nyt_id": "ag1",
+     "first_name": "Al",
+     "last_name": "Gee",
+     "party": {
+      "nyt_id": "GOP"
+     }
+    },
+    "ag2": {
+     "nyt_id": "ag2",
+     "first_name": "Di",
+     "last_name": "Dee",
+     "party": {
+      "nyt_id": "DEM"
+     }
+    }
+   },
+   "outcome": {
+    "won": []
+   },
+   "top_reporting_unit": {
+    "state_postal": "FL",
+    "eevp": 70,
+    "total_votes": 5800000,
+    "candidates": [
+     {
+      "nyt_id": "ag1",
+      "votes": {
+       "total": 3100000
+      }
+     },
+     {
+      "nyt_id": "ag2",
+      "votes": {
+       "total": 2700000
+      }
+     }
+    ]
+   }
+  },
+  {
+   "nyt_id": "FL-G-SS-2026-11-03-12",
+   "office": "State Senate",
+   "office_id": "SS",
+   "race_type_id": "G",
+   "seat": "District 12",
+   "seat_number": "12",
+   "coverage": "county",
+   "title": null,
+   "candidate_metadata": {
+    "s1": {
+     "nyt_id": "s1",
+     "first_name": "Sen",
+     "last_name": "Ator",
+     "incumbent": true,
+     "party": {
+      "nyt_id": "GOP"
+     }
+    },
+    "s2": {
+     "nyt_id": "s2",
+     "first_name": "Chal",
+     "last_name": "Lenger",
+     "party": {
+      "nyt_id": "DEM"
+     }
+    }
+   },
+   "outcome": {
+    "won": [
+     "s1"
+    ],
+    "winner_accepted_at": [
+     "2026-11-04T01:40:00+00:00"
+    ]
+   },
+   "top_reporting_unit": {
+    "state_postal": "FL",
+    "eevp": 95,
+    "total_votes": 200000,
+    "candidates": [
+     {
+      "nyt_id": "s1",
+      "votes": {
+       "total": 120000
+      }
+     },
+     {
+      "nyt_id": "s2",
+      "votes": {
+       "total": 80000
+      }
+     }
+    ]
+   }
+  }
+ ]
 }

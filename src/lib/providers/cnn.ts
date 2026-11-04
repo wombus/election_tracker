@@ -146,8 +146,10 @@ export const cnnProvider: Provider = {
     const year = ELECTION_DATE.slice(0, 4);
     const files = await Promise.allSettled(
       ["SG", "GG", "HG"].map(async (code) => {
-        const { data } = await fetchJson<CnnRace[] | CnnRace>(`${CNN_BASE}/${year}-${code}.json`, signal);
-        return normalizeCnnFile(Array.isArray(data) ? data : [data], byId);
+        const { value } = await fetchJson<CnnRace[] | CnnRace, Race[]>(`${CNN_BASE}/${year}-${code}.json`, signal, (data) =>
+          normalizeCnnFile(Array.isArray(data) ? data : [data], byId),
+        );
+        return value;
       }),
     );
     const ok = files.filter((f) => f.status === "fulfilled");

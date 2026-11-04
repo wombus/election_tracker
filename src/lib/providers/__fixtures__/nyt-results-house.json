@@ -1,23 +1,187 @@
 {
-  "races": [
-    {
-      "nyt_id": "AK-G-H-2026-11-03", "office": "U.S. House", "office_id": "H", "race_type_id": "G", "seat_number": "1",
-      "candidate_metadata": {
-        "x": { "nyt_id": "x", "first_name": "Xavier", "last_name": "Ex", "incumbent": true, "party": { "nyt_id": "GOP" } },
-        "y": { "nyt_id": "y", "first_name": "Yolanda", "last_name": "Why", "incumbent": false, "party": { "nyt_id": "DEM" } }
-      },
-      "outcome": { "won": [], "advanced_to_runoff": [] },
-      "top_reporting_unit": { "state_postal": "AK", "eevp": 30, "total_votes": 90000, "candidates": [ { "nyt_id": "x", "votes": { "total": 50000 } }, { "nyt_id": "y", "votes": { "total": 40000 } } ] }
+ "races": [
+  {
+   "nyt_id": "AK-G-H-2026-11-03",
+   "office": "U.S. House",
+   "office_id": "H",
+   "race_type_id": "G",
+   "seat_number": "1",
+   "candidate_metadata": {
+    "x": {
+     "nyt_id": "x",
+     "first_name": "Xavier",
+     "last_name": "Ex",
+     "incumbent": true,
+     "party": {
+      "nyt_id": "GOP"
+     }
     },
-    {
-      "nyt_id": "GA-G-H-2026-11-03-14", "office": "U.S. House", "office_id": "H", "race_type_id": "G", "seat_number": "14",
-      "candidate_metadata": {
-        "p": { "nyt_id": "p", "first_name": "Pia", "last_name": "Pea", "party": { "nyt_id": "GOP" } },
-        "q": { "nyt_id": "q", "first_name": "Quin", "last_name": "Queue", "party": { "nyt_id": "DEM" } },
-        "r": { "nyt_id": "r", "first_name": "Rae", "last_name": "Are", "party": { "nyt_id": "GOP" } }
-      },
-      "outcome": { "won": [], "advanced_to_runoff": ["p", "q"] },
-      "top_reporting_unit": { "state_postal": "GA", "eevp": 99, "total_votes": 300000, "candidates": [ { "nyt_id": "p", "votes": { "total": 140000 } }, { "nyt_id": "q", "votes": { "total": 120000 } }, { "nyt_id": "r", "votes": { "total": 40000 } } ] }
+    "y": {
+     "nyt_id": "y",
+     "first_name": "Yolanda",
+     "last_name": "Why",
+     "incumbent": false,
+     "party": {
+      "nyt_id": "DEM"
+     }
     }
-  ]
+   },
+   "outcome": {
+    "won": [],
+    "advanced_to_runoff": []
+   },
+   "top_reporting_unit": {
+    "state_postal": "AK",
+    "eevp": 30,
+    "total_votes": 90000,
+    "candidates": [
+     {
+      "nyt_id": "x",
+      "votes": {
+       "total": 50000
+      }
+     },
+     {
+      "nyt_id": "y",
+      "votes": {
+       "total": 40000
+      }
+     }
+    ]
+   },
+   "coverage": "state"
+  },
+  {
+   "nyt_id": "GA-G-H-2026-11-03-14",
+   "office": "U.S. House",
+   "office_id": "H",
+   "race_type_id": "G",
+   "seat_number": "14",
+   "candidate_metadata": {
+    "p": {
+     "nyt_id": "p",
+     "first_name": "Pia",
+     "last_name": "Pea",
+     "party": {
+      "nyt_id": "GOP"
+     }
+    },
+    "q": {
+     "nyt_id": "q",
+     "first_name": "Quin",
+     "last_name": "Queue",
+     "party": {
+      "nyt_id": "DEM"
+     }
+    },
+    "r": {
+     "nyt_id": "r",
+     "first_name": "Rae",
+     "last_name": "Are",
+     "party": {
+      "nyt_id": "GOP"
+     }
+    }
+   },
+   "outcome": {
+    "won": [],
+    "advanced_to_runoff": [
+     "p",
+     "q"
+    ]
+   },
+   "top_reporting_unit": {
+    "state_postal": "GA",
+    "eevp": 99,
+    "total_votes": 300000,
+    "candidates": [
+     {
+      "nyt_id": "p",
+      "votes": {
+       "total": 140000
+      }
+     },
+     {
+      "nyt_id": "q",
+      "votes": {
+       "total": 120000
+      }
+     },
+     {
+      "nyt_id": "r",
+      "votes": {
+       "total": 40000
+      }
+     }
+    ]
+   },
+   "coverage": "multi-county"
+  },
+  {
+   "nyt_id": "LA-L-H-2026-11-03-2",
+   "office": "U.S. House",
+   "office_id": "H",
+   "race_type_id": "L",
+   "seat_number": "2",
+   "coverage": "county",
+   "candidate_metadata": {
+    "l1": {
+     "nyt_id": "l1",
+     "first_name": "Lou",
+     "last_name": "Isiana",
+     "incumbent": true,
+     "party": {
+      "nyt_id": "DEM"
+     }
+    },
+    "l2": {
+     "nyt_id": "l2",
+     "first_name": "Bay",
+     "last_name": "Ou",
+     "party": {
+      "nyt_id": "GOP"
+     }
+    }
+   },
+   "outcome": {
+    "won": [],
+    "advanced_to_runoff": []
+   },
+   "top_reporting_unit": {
+    "state_postal": "LA",
+    "eevp": 40,
+    "total_votes": 80000,
+    "candidates": [
+     {
+      "nyt_id": "l1",
+      "votes": {
+       "total": 50000
+      }
+     },
+     {
+      "nyt_id": "l2",
+      "votes": {
+       "total": 30000
+      }
+     }
+    ]
+   }
+  },
+  {
+   "nyt_id": "US-G-H-2026-11-03",
+   "office": "U.S. House",
+   "office_id": "H",
+   "race_type_id": "G",
+   "coverage": "national",
+   "seat_number": null,
+   "candidate_metadata": {},
+   "outcome": {
+    "won": []
+   },
+   "top_reporting_unit": {
+    "state_postal": "US",
+    "candidates": []
+   }
+  }
+ ]
 }

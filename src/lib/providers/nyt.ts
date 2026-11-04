@@ -3,15 +3,17 @@
  *
  *   National: https://static01.nyt.com/elections-assets/pages/data/2026-11-03/results-{senate|governor|house}.json
  *   Per state: https://static01.nyt.com/elections-assets/pages/data/2026-11-03/results-{state-name}.json
- *              (e.g. results-new-hampshire.json). These carry every statewide contest:
- *              attorney general, secretary of state, ballot measures, and more.
+ *              (e.g. results-new-hampshire.json). These carry every contest AP tabulates
+ *              in the state: statewide offices and ballot measures (coverage "state"),
+ *              plus state senate / state house / council districts.
  *
  * These are the public JSON files behind nytimes.com's results pages, served
  * from a CDN. They are unofficial and undocumented: the format can change and
  * the publisher's terms apply. Fine for a personal dashboard; ask permission
  * before building anything commercial on them.
  *
- * Schema (cross-checked against several independent open-source trackers):
+ * Schema (cross-checked against several open-source trackers, then verified
+ * against the live election-night files):
  *   { races: [{ nyt_id, office, office_id ("S"|"G"|"H"|"I"|…), race_type_id ("G" = general),
  *     seat, seat_number, coverage?, updated_at,
  *     candidate_metadata: { [id]: { first_name, last_name, incumbent, party: { nyt_id: "DEM"|"GOP"|… } } },
@@ -55,7 +57,9 @@ export interface NytRace {
   race_type_id?: string;
   seat?: string | null;
   seat_number?: string | null;
+  /** Geographic extent: "state", "multi-county", "county", "national". NOT a filter for local contests. */
   coverage?: string;
+  title?: string | { default?: string | null } | null;
   updated_at?: string | null;
   candidate_metadata?: Record<string, NytCandidateMeta>;
   outcome?: {
@@ -84,8 +88,8 @@ function officeCode(id: string | undefined): OfficeCode {
 export function normalizeNytRace(r: NytRace, roster: Map<string, Race>): Race | null {
   const ru = r.top_reporting_unit;
   const state = ru?.state_postal;
-  if (!ru || !state || state === "US") return null; // "US" = national popular-vote aggregate
-  if (r.coverage && r.coverage !== "state") return null; // skip county/city contests
+  // "US" / "national" = the nationwide House popular-vote aggregate, not a race.
+  if (!ru || !state || state === "US" || r.coverage === "national") return null;
 
   const office = officeCode(r.office_id);
   const isBallotMeasure = r.office_id === "I";
@@ -122,16 +126,25 @@ export function normalizeNytRace(r: NytRace, roster: Map<string, Race>): Race | 
   const base = roster.get(id);
   const officeName = r.office ?? base?.officeName ?? "Race";
   const calledAt = (r.outcome?.winner_accepted_at ?? []).find((x): x is string => !!x) ?? null;
+  // Display title: NYT's curated title ("Amendment 1 – Budget Stabilization Fund"),
+  // else the seat ("District 12"), else the office ("Attorney General").
+  const curated = typeof r.title === "string" ? r.title : (r.title?.default ?? null);
+  // Everything that isn't statewide (legislative districts, councils…) is served
+  // per state on demand rather than in the main snapshot (see store.ts).
+  const local = office === "X" && r.coverage !== undefined && r.coverage !== "state";
 
   return finalizeRace({
     id,
     state,
     office,
     officeName,
-    title: base?.title ?? (office === "H" ? districtLabel(state, district!) : r.seat || officeName),
-    subtitle: base?.subtitle ?? (office === "X" && r.seat && r.seat !== officeName ? officeName : undefined),
+    title: base?.title ?? (office === "H" ? districtLabel(state, district!) : curated || r.seat || officeName),
+    subtitle: base?.subtitle,
     district,
-    special: base?.special ?? (r.race_type_id !== undefined && r.race_type_id !== "G"),
+    // Roster races know whether they're specials. Elsewhere NYT marks specials "W";
+    // other codes (e.g. Louisiana's "L") are regular elections.
+    special: base ? base.special : r.race_type_id === "W" || undefined,
+    local: local || undefined,
     isBallotMeasure: isBallotMeasure || undefined,
     heldBy: base?.heldBy ?? null,
     holder: base?.holder,
@@ -167,6 +180,8 @@ export function normalizeNytFile(file: NytFile, roster: Map<string, Race>, keep:
 const g = globalThis as typeof globalThis & { __nytStateCache?: Map<string, Race[]> };
 const stateCache: Map<string, Race[]> = (g.__nytStateCache ??= new Map());
 
+const NATIONAL = ["senate", "governor", "house"] as const;
+
 export const nytProvider: Provider = {
   id: "nyt",
   name: "AP via The New York Times",
@@ -177,9 +192,11 @@ export const nytProvider: Provider = {
 
     // 1) The three national files (Senate, Governor, House) — the core results.
     const nationalP = Promise.allSettled(
-      (["senate", "governor", "house"] as const).map(async (slug) => {
-        const { data } = await fetchJson<NytFile>(`${NYT_BASE}/results-${slug}.json`, signal);
-        return normalizeNytFile(data, byId, (r) => r.office !== "X");
+      NATIONAL.map(async (slug) => {
+        const { value } = await fetchJson<NytFile, Race[]>(`${NYT_BASE}/results-${slug}.json`, signal, (data) =>
+          normalizeNytFile(data, byId, (r) => r.office !== "X"),
+        );
+        return value;
       }),
     );
 
@@ -190,8 +207,10 @@ export const nytProvider: Provider = {
           const slug = nytStateSlug(postal);
           if (!slug) return;
           try {
-            const { data } = await fetchJson<NytFile>(`${NYT_BASE}/results-${slug}.json`, signal);
-            stateCache.set(postal, normalizeNytFile(data, byId, (r) => r.office === "X" && r.state === postal));
+            const { value } = await fetchJson<NytFile, Race[]>(`${NYT_BASE}/results-${slug}.json`, signal, (data) =>
+              normalizeNytFile(data, byId, (r) => r.office === "X" && r.state === postal),
+            );
+            stateCache.set(postal, value);
           } catch {
             // 404 (not published yet) or a hiccup: keep whatever we had for this state.
           }

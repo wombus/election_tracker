@@ -71,6 +71,9 @@ export interface Race {
   pollClose?: string;
   /** Caveats worth showing next to the race (e.g. a vacancy). */
   note?: string;
+  /** A district-level down-ballot contest (state legislature, councils…).
+   *  Kept out of the main snapshot and served per state on demand. */
+  local?: boolean;
   /** The district was redrawn for 2026, so "held by" is the current member
    *  for this district number rather than for identical lines. */
   newLines?: boolean;
@@ -87,6 +90,8 @@ export interface SourceStatus {
   /** ISO time of the last successful pull (may be older than checkedAt). */
   lastSuccessAt: string | null;
   raceCount: number;
+  /** How long the last pull took, in milliseconds. */
+  durationMs?: number;
   simulated?: boolean;
 }
 

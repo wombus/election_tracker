@@ -42,10 +42,13 @@ interface StoreState {
   snapshot: Snapshot | null;
   inflight: Promise<Snapshot> | null;
   lastGood: Map<string, { races: Race[]; at: string }>;
+  /** District-level down-ballot contests by state, served on demand. */
+  local: Map<string, Race[]>;
 }
 
 const g = globalThis as typeof globalThis & { __electionStore?: StoreState };
-const store: StoreState = (g.__electionStore ??= { snapshot: null, inflight: null, lastGood: new Map() });
+const store: StoreState = (g.__electionStore ??= { snapshot: null, inflight: null, lastGood: new Map(), local: new Map() });
+store.local ??= new Map();
 
 /** Does this race carry real numbers (votes or a call)? */
 function hasData(r: Race): boolean {
@@ -154,12 +157,16 @@ async function pull(config: AppConfig): Promise<Snapshot> {
   const results = await Promise.all(
     providers.map(async (p): Promise<{ status: SourceStatus; races: Race[] }> => {
       const checkedAt = new Date().toISOString();
+      const started = Date.now();
       try {
         const races = await p.fetchRaces({ config, roster, now, signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS) });
         store.lastGood.set(p.id, { races, at: checkedAt });
         return {
           races,
-          status: { id: p.id, name: p.name, url: p.url, ok: true, checkedAt, lastSuccessAt: checkedAt, raceCount: races.length, simulated: p.simulated },
+          status: {
+            id: p.id, name: p.name, url: p.url, ok: true, checkedAt, lastSuccessAt: checkedAt,
+            raceCount: races.length, durationMs: Date.now() - started, simulated: p.simulated,
+          },
         };
       } catch (err) {
         const prev = store.lastGood.get(p.id);
@@ -169,7 +176,8 @@ async function pull(config: AppConfig): Promise<Snapshot> {
           races: prev?.races ?? [],
           status: {
             id: p.id, name: p.name, url: p.url, ok: false, error: message, checkedAt,
-            lastSuccessAt: prev?.at ?? null, raceCount: prev?.races.length ?? 0, simulated: p.simulated,
+            lastSuccessAt: prev?.at ?? null, raceCount: prev?.races.length ?? 0,
+            durationMs: Date.now() - started, simulated: p.simulated,
           },
         };
       }
@@ -179,7 +187,23 @@ async function pull(config: AppConfig): Promise<Snapshot> {
   // Failover: a provider that failed this round only supplies its last good
   // data, so it drops behind every provider that answered.
   const ordered = [...results.filter((r) => r.status.ok), ...results.filter((r) => !r.status.ok)];
-  const races = mergeRaces(roster, ordered.map((r) => r.races));
+  const merged = mergeRaces(roster, ordered.map((r) => r.races));
+
+  // Thousands of state-legislative races would bloat every page load and poll,
+  // so they live in a per-state index the state panel fetches when opened.
+  const races: Race[] = [];
+  const local = new Map<string, Race[]>();
+  for (const r of merged) {
+    if (r.local) local.set(r.state, [...(local.get(r.state) ?? []), r]);
+    else races.push(r);
+  }
+  store.local = local;
+  if (results.length > 0) {
+    console.info(
+      `[results] ${races.length} races (+${merged.length - races.length} district) from ` +
+        results.map((r) => `${r.status.id} ${r.status.ok ? "ok" : "FAILED"} ${r.status.durationMs}ms`).join(", "),
+    );
+  }
   const rosterIds = new Set(roster.map((r) => r.id));
   const simulated = providers.some((p) => p.simulated);
 
@@ -202,6 +226,13 @@ export function resetStoreForTests(): void {
   store.snapshot = null;
   store.inflight = null;
   store.lastGood.clear();
+  store.local = new Map();
+}
+
+/** District-level contests (state legislature, councils…) for one state. */
+export async function getLocalRaces(postal: string): Promise<{ fetchedAt: string; races: Race[] }> {
+  const snap = await getSnapshot();
+  return { fetchedAt: snap.fetchedAt, races: store.local.get(postal) ?? [] };
 }
 
 export async function getSnapshot({ force = false }: { force?: boolean } = {}): Promise<Snapshot> {

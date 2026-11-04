@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildRoster } from "../roster";
-import { adoptCall, getSnapshot, mergeRaces, resetStoreForTests } from "../store";
+import { adoptCall, getLocalRaces, getSnapshot, mergeRaces, resetStoreForTests } from "../store";
 import { normalizeCnnFile, type CnnRace } from "./cnn";
 import { partyFromLabel } from "./http";
 import { normalizeNytFile, nytStateSlug, type NytFile } from "./nyt";
@@ -48,6 +48,14 @@ describe("NYT provider", () => {
     expect(senate).toHaveLength(2);
   });
 
+  it("keeps House races of every geographic coverage (regression: live files use multi-county/county)", () => {
+    const house = normalizeNytFile(fixture<NytFile>("nyt-results-house.json"), roster, () => true);
+    expect(house.map((r) => r.id).sort()).toEqual(["H-AK-0", "H-GA-14", "H-LA-2"]); // national aggregate dropped
+    const la = house.find((r) => r.id === "H-LA-2")!;
+    expect(la.special).toBeFalsy(); // Louisiana's "L" race type is a regular election
+    expect(la.local).toBeFalsy();
+  });
+
   it("maps at-large House seats and runoffs", () => {
     const house = normalizeNytFile(fixture<NytFile>("nyt-results-house.json"), roster, () => true);
     expect(house.find((r) => r.id === "H-AK-0")?.title).toBe("AK-AL");
@@ -56,13 +64,18 @@ describe("NYT provider", () => {
     expect(ga14.candidates.filter((c) => c.runoff)).toHaveLength(2);
   });
 
-  it("pulls statewide offices and ballot measures from state files, skipping local contests", () => {
+  it("reads statewide offices, ballot measures and legislative districts from state files", () => {
     const fl = normalizeNytFile(fixture<NytFile>("nyt-results-florida.json"), roster, (r) => r.office === "X");
-    expect(fl).toHaveLength(2);
+    expect(fl).toHaveLength(3);
     const measure = fl.find((r) => r.isBallotMeasure)!;
-    expect(measure.title).toBe("Amendment 4");
+    expect(measure.title).toBe("Amendment 4 – Sample Amendment"); // NYT's curated title.default
+    expect(measure.local).toBeFalsy();
     expect(measure.candidates.map((c) => c.name)).toEqual(["Yes", "No"]);
     expect(fl.find((r) => r.title === "Attorney General")?.candidates[0].party).toBe("R");
+    const senate12 = fl.find((r) => r.officeName === "State Senate")!;
+    expect(senate12.title).toBe("District 12");
+    expect(senate12.local).toBe(true); // served per state, not in the main snapshot
+    expect(senate12.status).toBe("called");
   });
 
   it("builds the per-state file slugs NYT uses", () => {
@@ -162,6 +175,9 @@ describe("end-to-end pipeline with mocked network", () => {
     expect(byId.get("S-TX")!.source).toBe("cnn"); // CNN fills races NYT lacks
     expect(byId.get("S-TX")!.calledBy).toBe("Decision Desk HQ");
     expect(snap.races.some((r) => r.isBallotMeasure && r.state === "FL")).toBe(true);
+    expect(snap.races.some((r) => r.local)).toBe(false); // legislative races stay out of the snapshot
+    const fl = await getLocalRaces("FL");
+    expect(fl.races.map((r) => r.title)).toEqual(["District 12"]);
     expect(snap.tallies.senate.R.won).toBeGreaterThanOrEqual(2); // OH (AP) + TX (DDHQ)
   });
 
